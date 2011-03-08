@@ -115,6 +115,7 @@ bool AppInit(int argc, char* argv[])
     } catch (...) {
         PrintException(NULL, "AppInit()");
     }
+    fInitializationCompleted = true;
     if (!fRet)
         Shutdown(NULL);
     return fRet;
@@ -122,6 +123,9 @@ bool AppInit(int argc, char* argv[])
 
 bool AppInit2(int argc, char* argv[])
 {
+    if (GetBoolArg("-server") || fDaemon)
+        CreateThread(ThreadRPCServer, NULL);
+
 #ifdef _MSC_VER
     // Turn off microsoft heap dump noise
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
@@ -442,9 +446,6 @@ bool AppInit2(int argc, char* argv[])
 
     if (!CreateThread(StartNode, NULL))
         wxMessageBox("Error: CreateThread(StartNode) failed", "Bitcoin");
-
-    if (GetBoolArg("-server") || fDaemon)
-        CreateThread(ThreadRPCServer, NULL);
 
 #if defined(__WXMSW__) && defined(GUI)
     if (fFirstRun)
