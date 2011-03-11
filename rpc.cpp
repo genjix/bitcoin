@@ -625,7 +625,8 @@ Value getbalance(const Array& params, bool fHelp)
             "If [account] is specified, returns the balance in the account.");
 
     if (params.size() == 0)
-        return  ValueFromAmount(GetBalance());
+        //return  ValueFromAmount(GetBalance());
+        return lexical_cast<string>(GetBalance());
 
     if (params[0].get_str() == "*") {
         // Calculate total balance a different way from GetBalance()
@@ -654,7 +655,8 @@ Value getbalance(const Array& params, bool fHelp)
             nBalance += allGenerated;
         }
         printf("Found %d accounts\n", vAccounts.size());
-        return  ValueFromAmount(nBalance);
+        //return  ValueFromAmount(nBalance);
+        return lexical_cast<string>(nBalance);
     }
 
     string strAccount = AccountFromValue(params[0]);
@@ -664,7 +666,8 @@ Value getbalance(const Array& params, bool fHelp)
 
     int64 nBalance = GetAccountBalance(strAccount, nMinDepth);
 
-    return ValueFromAmount(nBalance);
+    //return ValueFromAmount(nBalance);
+    return lexical_cast<string>(nBalance);
 }
 
 
