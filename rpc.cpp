@@ -62,10 +62,7 @@ void PrintConsole(const char* format, ...)
 
 int64 AmountFromValue(const Value& value)
 {
-    double dAmount = value.get_real();
-    if (dAmount <= 0.0 || dAmount > 21000000.0)
-        throw JSONRPCError(-3, "Invalid amount");
-    int64 nAmount = roundint64(dAmount * COIN);
+    int64 nAmount = lexical_cast<int64>(value.get_str());
     if (!MoneyRange(nAmount))
         throw JSONRPCError(-3, "Invalid amount");
     return nAmount;
@@ -73,7 +70,7 @@ int64 AmountFromValue(const Value& value)
 
 Value ValueFromAmount(int64 amount)
 {
-    return (double)amount / (double)COIN;
+    return lexical_cast<string>(amount);
 }
 
 void WalletTxToJSON(const CWalletTx& wtx, Object& entry)
@@ -625,7 +622,7 @@ Value getbalance(const Array& params, bool fHelp)
             "If [account] is specified, returns the balance in the account.");
 
     if (params.size() == 0)
-        return lexical_cast<string>(GetBalance());
+        return ValueFromAmount(GetBalance());
 
     if (params[0].get_str() == "*") {
         // Calculate total balance a different way from GetBalance()
@@ -654,7 +651,7 @@ Value getbalance(const Array& params, bool fHelp)
             nBalance += allGenerated;
         }
         printf("Found %d accounts\n", vAccounts.size());
-        return lexical_cast<string>(nBalance);
+        return ValueFromAmount(nBalance);
     }
 
     string strAccount = AccountFromValue(params[0]);
@@ -664,7 +661,7 @@ Value getbalance(const Array& params, bool fHelp)
 
     int64 nBalance = GetAccountBalance(strAccount, nMinDepth);
 
-    return lexical_cast<string>(nBalance);
+    return ValueFromAmount(nBalance);
 }
 
 
@@ -1989,7 +1986,6 @@ int CommandLineRPC(int argc, char *argv[])
         if (strMethod == "listreceivedbylabel"    && n > 0) ConvertTo<boost::int64_t>(params[0]); // deprecated
         if (strMethod == "listreceivedbylabel"    && n > 1) ConvertTo<bool>(params[1]); // deprecated
         if (strMethod == "getbalance"             && n > 1) ConvertTo<boost::int64_t>(params[1]);
-        if (strMethod == "move"                   && n > 2) ConvertTo<double>(params[2]);
         if (strMethod == "move"                   && n > 3) ConvertTo<boost::int64_t>(params[3]);
         if (strMethod == "sendfrom"               && n > 2) ConvertTo<double>(params[2]);
         if (strMethod == "sendfrom"               && n > 3) ConvertTo<boost::int64_t>(params[3]);
