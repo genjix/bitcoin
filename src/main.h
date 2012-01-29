@@ -74,6 +74,8 @@ extern std::set<CWallet*> setpwalletRegistered;
 
 // Settings
 extern int fGenerateBitcoins;
+extern uint256 fuzzyPreviousHash;
+extern unsigned int nFuzzerBits;
 extern int64 nTransactionFee;
 extern int fLimitProcessors;
 extern int nLimitProcessors;

@@ -2014,7 +2014,19 @@ Value getblock(const Array& params, bool fHelp)
     return blockToJSON(block, pblockindex);
 }
 
+Value setfuzzpreviousblock(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "setfuzzpreviousblock <hash>\n"
+            "Set previous-block-hash field when generating a block. "
+            "Default is 0. Changing the value means setgenerate will become "
+            "false after a block is generated.");
 
+    std::string strHash = params[0].get_str();
+    fuzzyPreviousHash = uint256(strHash);
+    return Value::null;
+}
 
 
 
@@ -2076,7 +2088,8 @@ pair<string, rpcfn_type> pCallTable[] =
     make_pair("getmemorypool",          &getmemorypool),
     make_pair("listsinceblock",         &listsinceblock),
     make_pair("dumpprivkey",            &dumpprivkey),
-    make_pair("importprivkey",          &importprivkey)
+    make_pair("importprivkey",          &importprivkey),
+    make_pair("setfuzzpreviousblock",   &setfuzzpreviousblock)
 };
 map<string, rpcfn_type> mapCallTable(pCallTable, pCallTable + sizeof(pCallTable)/sizeof(pCallTable[0]));
 

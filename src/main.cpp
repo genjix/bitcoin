@@ -58,6 +58,8 @@ int64 nHPSTimerStart;
 
 // Settings
 int fGenerateBitcoins = false;
+uint256 fuzzyPreviousHash("0");
+unsigned int nFuzzerBits = 0x1d00ffff;
 int64 nTransactionFee = 0;
 int fLimitProcessors = false;
 int nLimitProcessors = 1;
@@ -2980,6 +2982,9 @@ CBlock* CreateNewBlock(CReserveKey& reservekey)
         multimap<double, CTransaction*> mapPriority;
         for (map<uint256, CTransaction>::iterator mi = mapTransactions.begin(); mi != mapTransactions.end(); ++mi)
         {
+            if (fuzzyPreviousHash != uint256("0"))
+                break;
+
             CTransaction& tx = (*mi).second;
             if (tx.IsCoinBase() || !tx.IsFinal())
                 continue;
@@ -3031,6 +3036,8 @@ CBlock* CreateNewBlock(CReserveKey& reservekey)
                 printf("\n");
             }
         }
+
+        assert(fuzzyPreviousHash == uint256("0") || mapPriority.empty());
 
         // Collect transactions into block
         map<uint256, CTxIndex> mapTestPool;
@@ -3110,10 +3117,19 @@ CBlock* CreateNewBlock(CReserveKey& reservekey)
     pblock->vtx[0].vout[0].nValue = GetBlockValue(pindexPrev->nHeight+1, nFees);
 
     // Fill in header
-    pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+    if (fuzzyPreviousHash == uint256("0"))
+    {
+        pblock->hashPrevBlock = pindexPrev->GetBlockHash();
+        pblock->nBits = GetNextWorkRequired(pindexPrev);
+    }
+    else
+    {
+        printf("CreateNewBlock(): using surrogate previous block hash: %s\n", fuzzyPreviousHash.GetHex().c_str());
+        pblock->hashPrevBlock = fuzzyPreviousHash;
+        pblock->nBits = nFuzzerBits;
+    }
     pblock->hashMerkleRoot = pblock->BuildMerkleTree();
     pblock->nTime          = max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
-    pblock->nBits          = GetNextWorkRequired(pindexPrev);
     pblock->nNonce         = 0;
 
     return pblock.release();
@@ -3203,12 +3219,21 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
     printf("%s ", DateTimeStrFormat("%x %H:%M", GetTime()).c_str());
     printf("generated %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue).c_str());
 
+    // Show binary format for block
+    CDataStream serializedBlock;
+    serializedBlock << *pblock;
+    printf("----------------------------\n");
+    std::stringstream ss;
+    ss << std::hex;
+    typedef unsigned char byte;
+    for (CDataStream::const_iterator it = serializedBlock.begin(); it != serializedBlock.end(); ++it)
+        ss << std::setw(2) << std::setfill('0') << int(byte(*it));
+    printf("%s\n", ss.str().c_str());
+    printf("----------------------------\n");
+
     // Found a solution
     CRITICAL_BLOCK(cs_main)
     {
-        if (pblock->hashPrevBlock != hashBestChain)
-            return error("BitcoinMiner : generated block is stale");
-
         // Remove key from key pool
         reservekey.KeepKey();
 
@@ -3220,7 +3245,7 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         if (!ProcessBlock(NULL, pblock))
             return error("BitcoinMiner : ProcessBlock, block not accepted");
     }
-
+    CreateThread(Shutdown, NULL);
     return true;
 }
 
